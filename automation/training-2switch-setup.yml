@@ -1,0 +1,30 @@
+- name: Wipe Configuration
+  hosts: leaf
+  become: yes
+  gather_facts: no
+  roles:
+  - reset
+
+- name: Configure CLAG on Leaf Switches
+  hosts: leaf01:leaf02
+  become: yes
+  vars:
+    devices:
+        leaf01:
+            loopback: "10.255.255.1/32"
+            bgpasn: "65101"
+        leaf02:
+            loopback: "10.255.255.2/32"
+            bgpasn: "65102"
+
+  tasks:
+  - name: Deploy BGP unnumbered between leafs
+    nclu:
+        commit: true
+        description: "Deploy interface configuration"
+        commands:
+            - add loopback lo ip address {{ devices[ansible_hostname].loopback }}
+            - add bgp autonomous-system {{ devices[ansible_hostname].bgpasn }}
+            - add bgp neighbor swp1 interface remote-as external
+            - add bgp network {{ devices[ansible_hostname].loopback }}
+            - add bgp bestpath as-path multipath-relax
